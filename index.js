@@ -1,119 +1,127 @@
-function tokenizeListOftokens(seriesOfTokens) {
+/*
+    Given a series of tokens,
+    // (+ 2 3) -> well-formed individual statement
+    // + 2 3 -> list of tokens
+    // list 1 2 "sid" (list 1 2) -> list of tokens
+    process it from left to right and return a array of analyzed tokens
+    // supported tokens
+    // 1. number
+    // 2. string
+    // 3. symbol --> anything that is not number of string or a bracket
+    // whenever a ( is encountered, tokenize the list of tokens inside the bracket in a separate object
+*/
+function tokenizer(seriesOfTokens) {
     if (seriesOfTokens.length === 0) {
         return [];
-    } else {
-        if (seriesOfTokens[0] === "(") {
-            var openBrackets = 0;
-            var closingBracketIndex = -1;
-            for (var i = 0; i < seriesOfTokens.length; i++) {
-                if (seriesOfTokens[i] === "(") {
-                    openBrackets++;
-                } else if (seriesOfTokens[i] === ")") {
-                    openBrackets--;
-                    if (openBrackets === 0) {
-                        closingBracketIndex = i;
-                        break;
-                    }
-                }
-            }
+    }
 
-            var tokensOfthisBracket = seriesOfTokens
-                .substring(1, closingBracketIndex)
-                .trim();
-            var restOfTheTokens = seriesOfTokens
-                .substring(closingBracketIndex + 1)
-                .trim();
-
-            return [
-                {
-                    children: [...tokenizeListOftokens(tokensOfthisBracket)],
-                },
-                ...tokenizeListOftokens(restOfTheTokens),
-            ];
-        } else {
-            if (seriesOfTokens[0] === '"') {
-                return [
-                    {
-                        type: "string",
-                        stringContent: seriesOfTokens.substring(
-                            1,
-                            seriesOfTokens.indexOf('"', 1)
-                        ),
-                    },
-                    ...tokenizeListOftokens(
-                        seriesOfTokens
-                            .substring(seriesOfTokens.indexOf('"', 1) + 1)
-                            .trim()
-                    ),
-                ];
-            } else {
-                // get first word
-                var firstSpaceIndex = seriesOfTokens.indexOf(" ");
-                if (firstSpaceIndex === -1) {
-                    firstSpaceIndex = seriesOfTokens.length;
-                }
-                var firstWord = seriesOfTokens.substring(0, firstSpaceIndex);
-                var restOfTheTokens = seriesOfTokens
-                    .substring(firstSpaceIndex + 1)
-                    .trim();
-
-                if (!isNaN(firstWord)) {
-                    // it is a number
-                    return [
-                        {
-                            type: "number",
-                            number: Number(firstWord),
-                        },
-                        ...tokenizeListOftokens(restOfTheTokens),
-                    ];
-                } else {
-                    // it is a symbol
-                    return [
-                        {
-                            type: "symbol",
-                            symbol: firstWord,
-                        },
-                        ...tokenizeListOftokens(restOfTheTokens),
-                    ];
+    // The first token in the list is a well-formed individual statement
+    if (seriesOfTokens[0] === "(") {
+        // find the closing bracket
+        var openBrackets = 0;
+        var closingBracketIndex = -1;
+        for (var i = 0; i < seriesOfTokens.length; i++) {
+            if (seriesOfTokens[i] === "(") {
+                openBrackets++;
+            } else if (seriesOfTokens[i] === ")") {
+                openBrackets--;
+                if (openBrackets === 0) {
+                    closingBracketIndex = i;
+                    break;
                 }
             }
         }
+
+        // list of tokens inside this bracket
+        var tokensOfthisBracket = seriesOfTokens
+            .substring(1, closingBracketIndex)
+            .trim();
+
+        // rest of the tokens;
+        // remember seriesOfTokens is not a well-formed individual statement.
+        // so there can be more tokens left to process.
+        // example if the original statement sent to tokenizer is (list (list 1 2) 3 4)
+        // then tokenizeListOfTokens will be called with (list 1 2) 3 4
+        // then we are going to tokenize (list 1 2) and 3 4 separately
+        var restOfTheTokens = seriesOfTokens
+            .substring(closingBracketIndex + 1)
+            .trim();
+
+        return [
+            {
+                children: [...tokenizer(tokensOfthisBracket)],
+            },
+            ...tokenizer(restOfTheTokens),
+        ];
     }
+
+    // The first element in the list is the tokens is a string.
+    // strip the string and tokenize the rest of the tokens
+    if (seriesOfTokens[0] === '"') {
+        return [
+            {
+                type: "string",
+                stringContent: seriesOfTokens.substring(
+                    1,
+                    seriesOfTokens.indexOf('"', 1)
+                ),
+            },
+            ...tokenizer(
+                seriesOfTokens
+                    .substring(seriesOfTokens.indexOf('"', 1) + 1)
+                    .trim()
+            ),
+        ];
+    }
+
+    // Not a string. Not a (). What else could it be? analyze first word
+    var firstSpaceIndex = seriesOfTokens.indexOf(" ");
+    if (firstSpaceIndex === -1) {
+        firstSpaceIndex = seriesOfTokens.length;
+    }
+    var firstWord = seriesOfTokens.substring(0, firstSpaceIndex);
+    var restOfTheTokens = seriesOfTokens.substring(firstSpaceIndex + 1).trim();
+
+    if (!isNaN(firstWord)) {
+        // it is a number
+        return [
+            {
+                type: "number",
+                number: Number(firstWord),
+            },
+            ...tokenizer(restOfTheTokens),
+        ];
+    }
+
+    // it is a symbol. return it as it is. tokenizer is not smart enough to analyze what it is.
+    // it just says it is something to analyze
+    return [
+        {
+            type: "symbol",
+            symbol: firstWord,
+        },
+        ...tokenizer(restOfTheTokens),
+    ];
 }
 
-function tokenizer(perfectCommand) {
-    if (perfectCommand.length > 0) {
-        if (perfectCommand[0] === "(") {
-            var restOfCommand = perfectCommand
-                .substring(1, perfectCommand.length - 1)
-                .trim();
-            if (restOfCommand.length === 0) {
-                return {
-                    children: [],
-                };
-            }
-
-            return {
-                children: tokenizeListOftokens(restOfCommand),
-            };
-        }
-    } else {
-        return {
-            children: [],
-        };
-    }
-}
-
+/*
+    Given lisp code,
+    1. Parse it into well-formed individual statements
+    2. Use tokenizer to tokenize each statement
+*/
 function parser(lisp) {
     // let's remove comments
+    // comment starts with ; and can appear in any line.
     lisp = lisp
         .split("\n")
         .map((x) => x.split(";")[0])
         .join("\n");
 
     // let's convert lisp into well-formed individual statements
-    // (+ 2 3) -> individual statement
-    // (list 2 3) -> individual statement
+    // (+ 2 3) -> well-formed individual statement
+    // (list 2 3) -> another well-formed individual statement
+    // simple brute-force algorithm to parse the lisp code character by character and splitting based on
+    // open and closing brackets
     var statements = [];
     var openBrackets = 0;
     var currentStatement = "";
@@ -139,28 +147,45 @@ function parser(lisp) {
         statements.push(currentStatement);
     }
 
-    // now we have individual well formed statements to work on.
+    // now we have individual well formed statements to work on
+    // use tokenizer to tokenize each statement
     var tokenizedStatements = statements
         .filter((x) => x)
         .map((x) => x.trim())
         .filter((x) => x)
         .map((statement) => {
-            statement = statement.trim();
-            // now let's parse the final structured statement
             var tokens = tokenizer(statement);
+
+            var tokenizedStatement = {
+                children: tokens,
+            }; // OR tokens[0]
+
+            // interpreter works on whole formed individual statements that are represented by objects
+            // tokenizer returns a list of tokens which themselves are objects
+            // so we can either send tokens[0] as the statement to interpreter
+            // OR
+            // form a wrapped object with children as tokens and send it to interpreter
+            // we are doing the latter because it is fun
+
             return {
                 statement,
-                tokens,
+                tokenizedStatement,
             };
         });
 
     return tokenizedStatements;
 }
 
+/*
+    Given a tokenized statement, interpret/ evaluate it and return the result
+    env is the environment in which the statement is interpreted
+ */
 function interpret(statement, env) {
-    var children = statement.children;
     var type = statement.type;
 
+    // If we are dealing with atomic step
+    // i.e, 1 2 3 "sid" list square etc.
+    // return it's value from environment
     if (type === "number") {
         return Number(statement.number);
     } else if (type === "string") {
@@ -169,20 +194,19 @@ function interpret(statement, env) {
         return env[statement.symbol];
     }
 
-    var firstItem = null;
-    var rest = null;
-
-    if (children.length > 0) {
-        firstItem = children[0];
-        rest = children.slice(1);
-    } else {
-    }
-
+    // If it is not atomic, then it must have children
+    var children = statement.children;
+    // First children gives us the type of the statement to interpret
+    var firstItem = children[0];
+    var rest = children.slice(1);
     var type = firstItem.type;
 
     if (type === "symbol") {
+        // If it is a symbol, then it is a special form or a function call
         var symbol = firstItem.symbol;
+        // "rest" then becomes the arguments to the special form or function call
 
+        // Special forms that we support
         if (symbol === "list") {
             return [...rest.map((x) => interpret(x, env))];
         } else if (symbol === "first") {
@@ -192,9 +216,7 @@ function interpret(statement, env) {
         } else if (symbol === "last") {
             return [...interpret(rest[0], env)].slice(-1)[0];
         } else if (symbol === "cons") {
-            const firstRest = rest[0];
-            const restRest = rest[1];
-            return [interpret(firstRest, env), ...interpret(restRest, env)];
+            return [interpret(rest[0], env), ...interpret(rest[1], env)];
         } else if (symbol === "append") {
             return rest
                 .map((x) => interpret(x, env))
@@ -209,47 +231,39 @@ function interpret(statement, env) {
         } else if (symbol === "-") {
             const nums = [...rest.map((x) => interpret(x, env))];
             if (nums.length === 0) {
+                // (-) -> 0
                 return 0;
             } else if (nums.length === 1) {
+                // (- 2) => -2
                 return -1 * nums[0];
-            } else {
-                return nums[0] - nums.slice(1).reduce((a, b) => a + b, 0);
             }
+            // (- a b c) => a - b - c
+            return nums[0] - nums.slice(1).reduce((a, b) => a + b, 0);
         } else if (symbol === "*") {
             return [...rest.map((x) => interpret(x, env))].reduce(
                 (a, b) => a * b,
                 1
             );
         } else if (symbol === "/") {
-            return [...rest.map((x) => interpreter(x, env))].reduce(
+            return [...rest.map((x) => interpret(x, env))].reduce(
                 (a, b) => a / b,
                 0
             );
         } else if (symbol === "%") {
-            return [...rest.map((x) => interpreter(x, env))].reduce(
+            return [...rest.map((x) => interpret(x, env))].reduce(
                 (a, b) => a % b,
                 0
             );
         } else if (symbol === ">") {
-            const firstRest = rest[0];
-            const restRest = rest[1];
-            return interpret(firstRest, env) > interpret(restRest, env);
+            return interpret(rest[0], env) > interpret(rest[1], env);
         } else if (symbol === "<") {
-            const firstRest = rest[0];
-            const restRest = rest[1];
-            return interpret(firstRest, env) < interpret(restRest, env);
+            return interpret(rest[0], env) < interpret(rest[1], env);
         } else if (symbol === ">=") {
-            const firstRest = rest[0];
-            const restRest = rest[1];
-            return interpret(firstRest, env) >= interpret(restRest, env);
+            return interpret(rest[0], env) >= interpret(rest[1], env);
         } else if (symbol === "<=") {
-            const firstRest = rest[0];
-            const restRest = rest[1];
-            return interpret(firstRest, env) <= interpret(restRest, env);
+            return interpret(rest[0], env) <= interpret(rest[1], env);
         } else if (symbol === "eql") {
-            const firstRest = rest[0];
-            const restRest = rest[1];
-            return interpret(firstRest, env) === interpret(restRest, env);
+            return interpret(rest[0], env) === interpret(rest[1], env);
         } else if (symbol === "or") {
             return rest.map((x) => interpret(x, env)).some((x) => x);
         } else if (symbol === "and") {
@@ -309,12 +323,17 @@ function interpret(statement, env) {
                 return env[symbol];
             }
         }
+    } else {
+        return interpret(firstItem, env);
     }
 }
 
-function interpreter(statements, env, debug) {
-    return statements.map((s) => {
-        const eval = interpret(s.tokens, env);
+// Given a list of parsed statements, interpret them and return the result
+// env is the environment in which the statements are interpreted
+// for debugging purposes, we can pass debug=true to get the environment at each step
+function interpreter(parsedStatements, env, debug) {
+    return parsedStatements.map((s) => {
+        const eval = interpret(s.tokenizedStatement, env);
 
         return {
             ...s,
