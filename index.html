@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script>
+            tailwind.config = {
+                theme: {
+                    extend: {
+                        colors: {
+                            clifford: "#da373d",
+                        },
+                    },
+                },
+            };
+        </script>
+        <script src="./index.js"></script>
+    </head>
+    <body class="bg-gray-200">
+        <div class="max-h-screen flex flex-col p-4">
+            <div
+                class="flex flex-col border-b border-gray-200 bg-white px-4 py-5 sm:px-6 mx-auto w-full max-w-3xl rounded max-h-full overflow-y-auto"
+            >
+                <a
+                    href="https://book.siddg.com"
+                    class="text-base font-semibold leading-7 text-indigo-600"
+                >
+                    book.siddg.com
+                </a>
+                <h1
+                    class="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl"
+                >
+                    LISP in JS
+                </h1>
+                <p class="mt-6 text-xl leading-8">
+                    This is a LISP interpreter written in JS. The base canvas
+                    shows you all the supported functions. You can use the
+                    editor to write your own LISP code and see the output in the
+                    canvas.
+                </p>
+                <ul role="list" class="mt-10 overflow-y-auto" id="canvas">
+                    <li class="relative flex gap-x-4">
+                        <div
+                            class="absolute left-0 top-0 flex w-6 justify-center -bottom-6"
+                        >
+                            <div class="w-px bg-gray-200"></div>
+                        </div>
+                        <div
+                            class="relative flex h-6 w-6 flex-none items-center justify-center bg-white"
+                        >
+                            <div
+                                class="h-1.5 w-1.5 rounded-full bg-gray-100 ring-1 ring-gray-300"
+                            ></div>
+                        </div>
+                        <pre
+                            class="flex-auto py-0.5 text-sm leading-5 text-gray-500 font-medium text-gray-900"
+                        >
+(square 5)
+                        </pre>
+                    </li>
+                    <li class="relative flex gap-x-4">
+                        <div
+                            class="absolute left-0 top-0 flex w-6 justify-center -bottom-6"
+                        >
+                            <div class="w-px bg-indigo-200"></div>
+                        </div>
+                        <div
+                            class="relative flex h-6 w-6 flex-none items-center justify-center bg-white"
+                        >
+                            <div
+                                class="h-1.5 w-1.5 rounded-full bg-indigo-800 ring-1 ring-gray-800"
+                            ></div>
+                        </div>
+                        <pre
+                            class="flex-auto py-0.5 text-sm leading-5 text-indigo-800 font-medium text-gray-900"
+                        >
+25
+                        </pre>
+                    </li>
+                </ul>
+
+                <!-- New comment form -->
+                <div class="mt-6 flex flex-col sticky bottom-0 bg-white">
+                    <div
+                        class="overflow-hidden rounded-lg shadow-sm ring-1 ring-inset ring-gray-300 focus-within:ring-2 focus-within:ring-indigo-600 w-full"
+                    >
+                        <textarea
+                            rows="2"
+                            name="lisptext"
+                            id="lisptext"
+                            class="block px-4 w-full resize-none border-0 bg-transparent py-1.5 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"
+                            placeholder="Add your LISP command. Eg: (square 5)"
+                        ></textarea>
+                    </div>
+                    <div class="mt-2 flex">
+                        <div
+                            class="rounded-md bg-indigo-600 cursor-pointer px-2 py-1 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                            id="evaluate"
+                        >
+                            Evaluate
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script>
+            var lisp = `
+(+ 2 3)
+(list 2 3)
+(list 1 (+ 2 3) 4 "sid")
+(first (list 1 2 3))
+(rest (list 1 2 3))
+(cons 2 (list 1 2 3))
+(length (list 1 2))
+(let ((x 10) (y 20))
+ (+ x y))
+(define (square x) (* x x))
+(square 2)
+(set x (list 1 2 3))
+(set x 40)
+(square x)
+(define (sum-of-squares x y)
+ (+ (square x) (square y)))
+(sum-of-squares 3 4)
+(> 2 4)
+(if (> 2 4) "two is > 4" "lesser")
+(define (! x) (if (< x 1) 1 (* x (! (- x 1)))))
+(! 5)
+(define (fibo x) 
+    (if 
+        (or (eql x 0) (eql x 1)) 
+        1 
+        (+ (fibo (- x 1)) (fibo (- x 2)))
+    )
+)
+(fibo 10)
+(define 
+	(reverse lst) 
+	(if (eql (length lst) 0) 
+		(list)
+		(append 
+            (reverse (rest lst)) 
+            (list (first lst))
+        )
+	)
+)
+(reverse (list 1 2 3 4 5))
+`;
+
+            var env = {};
+            var log = interpreter(parser(lisp), env, (debug = true));
+
+            function paintLog() {
+                // get element by id "canvas"
+                const canvas = document.getElementById("canvas");
+
+                // empty the canvas (not efficient but works for now)
+                canvas.innerHTML = "";
+
+                // for each element in the log
+                log.map((l, index) => {
+                    // create a new li element of the form
+                    const liContent = `
+                    <div
+                        class="absolute left-0 top-0 flex w-6 justify-center -bottom-6"
+                    >
+                        <div class="w-px bg-gray-200"></div>
+                    </div>
+                    <div
+                        class="relative flex h-6 w-6 flex-none items-center justify-center bg-white"
+                    >
+                        <div
+                            class="h-1.5 w-1.5 rounded-full bg-gray-100 ring-1 ring-gray-300"
+                        ></div>
+                    </div>
+                    <pre
+                        class="flex-auto py-0.5 text-sm leading-5 text-gray-500 font-medium text-gray-900"
+                    >
+${(l.statement || "").trim()}</pre>`;
+                    const liContent2 = `
+                    <div
+                        class="absolute left-0 top-0 flex w-6 justify-center -bottom-${
+                            index === log.length - 1 ? "6" : "28"
+                        }"
+                    >
+                        <div class="w-px bg-indigo-200"></div>
+                    </div>
+                    <div
+                        class="relative flex h-6 w-6 flex-none items-center justify-center bg-white"
+                    >
+                        <div
+                            class="h-1.5 w-1.5 rounded-full bg-indigo-800 ring-1 ring-gray-800"
+                        ></div>
+                    </div>
+                    <pre
+                        class="flex-auto py-0.5 text-xs leading-5 text-indigo-800 font-medium text-gray-900"
+                    > => ${l.eval || ""}</pre>`;
+                    const li = document.createElement("li");
+                    li.className = "relative flex gap-x-4";
+                    li.style.marginTop = index === 0 ? "0px" : "50px";
+                    const li2 = document.createElement("li");
+                    li2.className = "relative flex gap-x-4";
+                    li2.style.marginTop = "10px";
+                    li.innerHTML = liContent;
+                    li2.innerHTML = liContent2;
+                    canvas.appendChild(li);
+                    canvas.appendChild(li2);
+                });
+            }
+
+            paintLog();
+
+            // add a click listener to "evaluate" id button
+            document
+                .getElementById("evaluate")
+                .addEventListener("click", () => {
+                    // get the value of the textarea
+                    const lisptext = document.getElementById("lisptext").value;
+
+                    // clear textarea
+                    document.getElementById("lisptext").value = "";
+
+                    if (lisptext && lisptext.trim().length > 0) {
+                        // parse the value
+                        const parsed = parser(lisptext);
+                        // evaluate the parsed value
+                        const evaluated = interpreter(
+                            parsed,
+                            env,
+                            (debug = true)
+                        );
+                        // add the evaluated value to the log
+                        log = log.concat(evaluated);
+                        // paint the log
+                        paintLog();
+
+                        // scroll canvas to the bottom
+                        const canvas = document.getElementById("canvas");
+                        canvas.scrollTop = canvas.scrollHeight;
+                    }
+                });
+        </script>
+    </body>
+</html>
