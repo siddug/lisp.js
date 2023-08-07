@@ -222,9 +222,11 @@ ${(l.statement || "").trim()}</pre>`;
                     const closedBrackets = lisptext.match(/\)/g);
 
                     if (
-                        openBrackets &&
-                        closedBrackets &&
-                        openBrackets.length !== closedBrackets.length
+                        (openBrackets &&
+                            closedBrackets &&
+                            openBrackets.length !== closedBrackets.length) ||
+                        !openBrackets ||
+                        !closedBrackets
                     ) {
                         return;
                     }
@@ -259,7 +261,7 @@ ${(l.statement || "").trim()}</pre>`;
                 .getElementById("lisptext")
                 .addEventListener("keydown", (e) => {
                     if (e.key === "Enter") {
-                        addLispToJS();
+                        setTimeout(() => addLispToJS(), 100);
                     }
                 });
         </script>
