@@ -211,33 +211,55 @@ ${(l.statement || "").trim()}</pre>`;
 
             paintLog();
 
-            // add a click listener to "evaluate" id button
-            document
-                .getElementById("evaluate")
-                .addEventListener("click", () => {
-                    // get the value of the textarea
-                    const lisptext = document.getElementById("lisptext").value;
+            function addLispToJS() {
+                // get the value of the textarea
+                const lisptext = document.getElementById("lisptext").value;
+
+                if (lisptext && lisptext.trim().length > 0) {
+                    // confirm that this is well formed. i.e, all brackets are closed
+                    // we just need a hacky way to do it. so count number of "(" = ")"
+                    const openBrackets = lisptext.match(/\(/g);
+                    const closedBrackets = lisptext.match(/\)/g);
+
+                    if (
+                        openBrackets &&
+                        closedBrackets &&
+                        openBrackets.length !== closedBrackets.length
+                    ) {
+                        return;
+                    }
 
                     // clear textarea
                     document.getElementById("lisptext").value = "";
 
-                    if (lisptext && lisptext.trim().length > 0) {
-                        // parse the value
-                        const parsed = parser(lisptext);
-                        // evaluate the parsed value
-                        const evaluated = interpreter(
-                            parsed,
-                            env,
-                            (debug = true)
-                        );
-                        // add the evaluated value to the log
-                        log = log.concat(evaluated);
-                        // paint the log
-                        paintLog();
+                    // parse the value
+                    const parsed = parser(lisptext);
+                    // evaluate the parsed value
+                    const evaluated = interpreter(parsed, env, (debug = true));
+                    // add the evaluated value to the log
+                    log = log.concat(evaluated);
+                    // paint the log
+                    paintLog();
 
-                        // scroll canvas to the bottom
-                        const canvas = document.getElementById("canvas");
-                        canvas.scrollTop = canvas.scrollHeight;
+                    // scroll canvas to the bottom
+                    const canvas = document.getElementById("canvas");
+                    canvas.scrollTop = canvas.scrollHeight;
+                }
+            }
+
+            // add a click listener to "evaluate" id button
+            document
+                .getElementById("evaluate")
+                .addEventListener("click", () => {
+                    addLispToJS();
+                });
+
+            // listen to "enter" on the textarea
+            document
+                .getElementById("lisptext")
+                .addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") {
+                        addLispToJS();
                     }
                 });
         </script>

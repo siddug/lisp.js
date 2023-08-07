@@ -38,10 +38,9 @@ function tokenizer(seriesOfTokens) {
             .trim();
 
         // rest of the tokens;
-        // remember seriesOfTokens is not a well-formed individual statement.
+        // remember seriesOfTokens might not be a well-formed individual statement.
         // so there can be more tokens left to process.
-        // example if the original statement sent to tokenizer is (list (list 1 2) 3 4)
-        // then tokenizeListOfTokens will be called with (list 1 2) 3 4
+        // example if the original statement sent to tokenizer is (list 1 2) 3 4
         // then we are going to tokenize (list 1 2) and 3 4 separately
         var restOfTheTokens = seriesOfTokens
             .substring(closingBracketIndex + 1)
